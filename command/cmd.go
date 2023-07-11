@@ -5,13 +5,17 @@ executing (CLI) commands.
 package command
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	liberr "github.com/jortel/go-utils/error"
-	hub "github.com/konveyor/tackle2-hub/addon"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
+
+	liberr "github.com/jortel/go-utils/error"
+	hub "github.com/konveyor/tackle2-hub/addon"
 )
 
 var (
@@ -20,7 +24,6 @@ var (
 
 type SoftError = hub.SoftError
 
-//
 // Command execution.
 type Command struct {
 	Options Options
@@ -29,7 +32,6 @@ type Command struct {
 	Output  []byte
 }
 
-//
 // Run executes the command.
 // The command and output are both reported in
 // task Report.Activity.
@@ -38,7 +40,6 @@ func (r *Command) Run() (err error) {
 	return
 }
 
-//
 // RunWith executes the command with context.
 // The command and output are both reported in
 // task Report.Activity.
@@ -49,12 +50,16 @@ func (r *Command) RunWith(ctx context.Context) (err error) {
 		strings.Join(r.Options, " "))
 	cmd := exec.CommandContext(ctx, r.Path, r.Options...)
 	cmd.Dir = r.Dir
-	r.Output, err = cmd.CombinedOutput()
+	var b bytes.Buffer
+	cmd.Stdout = io.MultiWriter(os.Stdout, &b)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &b)
+	err = cmd.Run()
 	if err != nil {
 		addon.Activity("[CMD] failed: %s.", err.Error())
 	} else {
 		addon.Activity("[CMD] succeeded.")
 	}
+	r.Output = b.Bytes()
 	exitErr := &exec.ExitError{}
 	if errors.As(err, &exitErr) {
 		err = &SoftError{
@@ -76,7 +81,6 @@ func (r *Command) RunWith(ctx context.Context) (err error) {
 	return
 }
 
-//
 // RunSilent executes the command.
 // Nothing reported in task Report.Activity.
 func (r *Command) RunSilent() (err error) {
@@ -84,7 +88,6 @@ func (r *Command) RunSilent() (err error) {
 	return
 }
 
-//
 // RunSilentWith executes the command with context.
 // Nothing reported in task Report.Activity.
 func (r *Command) RunSilentWith(ctx context.Context) (err error) {
@@ -94,18 +97,15 @@ func (r *Command) RunSilentWith(ctx context.Context) (err error) {
 	return
 }
 
-//
 // Options are CLI options.
 type Options []string
 
-//
 // add
 func (a *Options) Add(option string, s ...string) {
 	*a = append(*a, option)
 	*a = append(*a, s...)
 }
 
-//
 // add
 func (a *Options) Addf(option string, x ...interface{}) {
 	*a = append(*a, fmt.Sprintf(option, x...))
