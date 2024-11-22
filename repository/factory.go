@@ -16,8 +16,10 @@ func init() {
 	HomeDir, _ = os.UserHomeDir()
 }
 
+type Remote = api.Repository
+
 // New SCM repository factory.
-func New(destDir string, remote *api.Repository, identities []api.Ref) (r SCM, err error) {
+func New(destDir string, remote *Remote, identities []api.Ref) (r SCM, err error) {
 	var insecure bool
 	switch remote.Kind {
 	case "subversion":
@@ -51,7 +53,7 @@ func New(destDir string, remote *api.Repository, identities []api.Ref) (r SCM, e
 type SCM interface {
 	Validate() (err error)
 	Fetch() (err error)
-	Branch(name string) (err error)
+	Branch(ref string) (err error)
 	Commit(files []string, msg string) (err error)
 	Head() (commit string, err error)
 }
