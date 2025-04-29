@@ -31,6 +31,7 @@ type Command struct {
 	Dir      string
 	Reporter Reporter
 	Writer   Writer
+	Env      []string
 }
 
 // Run executes the command.
@@ -65,6 +66,7 @@ func (r *Command) RunWith(ctx context.Context) (err error) {
 	cmd.Dir = r.Dir
 	cmd.Stdout = &r.Writer
 	cmd.Stderr = &r.Writer
+	cmd.Env = r.Env
 	err = cmd.Start()
 	if err != nil {
 		return
